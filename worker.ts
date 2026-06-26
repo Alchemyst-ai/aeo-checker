@@ -734,7 +734,7 @@ function renderResultHtml(r: Awaited<ReturnType<typeof runAudit>>): string {
     : `<p style="color:#057a55">Website is well optimized!</p>`;
 
   const displayUrl = r.url.replace(/^https?:\/\//, "").replace(/\/$/, "");
-  const now = new Date().toLocaleDateString("en-US", { day: "numeric", month: "long", year: "numeric" });
+  const now = new Date().toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
 
   return `<!DOCTYPE html>
 <html lang="en">
