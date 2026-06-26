@@ -5,8 +5,8 @@
  *
  * Routes:
  *   GET /         → landing page with URL form
- *   GET /sjekk?url=... → run AEO audit, return HTML report
- *   POST /sjekk   → form submit, redirect to GET
+ *   GET /check?url=... → run AEO audit, return HTML report
+ *   POST /check   → form submit, redirect to GET
  */
 
 const UA = "Mozilla/5.0 (compatible; SynligDigital-AEO/1.0; +https://synligdigital.no)";
@@ -123,29 +123,29 @@ function analyzeSchema(html: string): AnalyzerResult & { details: Record<string,
 
   let score = 0;
   if (blocks.length === 0) {
-    issues.push("Ingen strukturerte data (JSON-LD) funnet");
-    recommendations.push("Legg til JSON-LD schema.org markup — det viktigste for AI-synlighet");
+    issues.push("No structured data (JSON-LD) found");
+    recommendations.push("Add JSON-LD schema.org markup — the most important factor for AI visibility");
   } else {
     score += 4;
     if (hasLocalBusiness) {
       score += 3;
       if (hasSpecificType) score += 3;
-      else recommendations.push("Bruk spesifikk type (f.eks. Dentist, Plumber) i stedet for generisk LocalBusiness");
+      else recommendations.push("Use a specific type (e.g. Dentist, Plumber) instead of generic LocalBusiness");
     } else {
-      issues.push("Mangler LocalBusiness-schema");
-      recommendations.push("Legg til @type som matcher bransjen (Dentist, Plumber, LegalService, etc.)");
+      issues.push("Missing LocalBusiness schema");
+      recommendations.push("Add @type matching your industry (Dentist, Plumber, LegalService, etc.)");
     }
     if (hasAggregateRating) score += 4;
-    else recommendations.push("Legg til AggregateRating med stjernerating fra Google/Trustpilot");
+    else recommendations.push("Add AggregateRating with star ratings from Google/Trustpilot");
     if (hasOpeningHours) score += 2;
-    else recommendations.push("Legg til openingHours i schema");
+    else recommendations.push("Add openingHours to schema");
     if (hasGeo) score += 2;
-    else recommendations.push("Legg til geo-koordinater (latitude/longitude)");
+    else recommendations.push("Add geo coordinates (latitude/longitude)");
     if (hasContactPoint) score += 1;
     if (hasFaqPage) score += 3;
-    else recommendations.push("Legg til FAQPage schema — AI-er siterer FAQ direkte i svar");
+    else recommendations.push("Add FAQPage schema — AIs cite FAQ directly in responses");
     if (hasService) score += 2;
-    else recommendations.push("Legg til hasOfferCatalog/Service for tjenester");
+    else recommendations.push("Add hasOfferCatalog/Service for services");
     if (hasPerson) score += 1;
   }
 
@@ -172,22 +172,22 @@ function analyzeMeta(html: string): AnalyzerResult & { details: Record<string, a
 
   // Title (0-5)
   if (!title) {
-    issues.push("Mangler <title>-tag");
-    recommendations.push("Legg til en beskrivende tittel (50-60 tegn)");
+    issues.push("Missing <title> tag");
+    recommendations.push("Add a descriptive title (50-60 characters)");
   } else if (title.length < 20 || title.length > 70) {
     score += 2;
-    recommendations.push(`Tittel er ${title.length} tegn — ideelt 50-60 tegn`);
+    recommendations.push(`Title is ${title.length} characters — ideally 50-60 characters`);
   } else {
     score += 5;
   }
 
   // Meta description (0-5)
   if (!description) {
-    issues.push("Mangler meta description");
-    recommendations.push("Legg til meta description (130-160 tegn) med tjeneste + lokasjon");
+    issues.push("Missing meta description");
+    recommendations.push("Add a meta description (130-160 characters) with service + location");
   } else if (description.length < 50 || description.length > 170) {
     score += 2;
-    recommendations.push(`Meta description er ${description.length} tegn — ideelt 130-160 tegn`);
+    recommendations.push(`Meta description is ${description.length} characters — ideally 130-160 characters`);
   } else {
     score += 5;
   }
@@ -197,18 +197,18 @@ function analyzeMeta(html: string): AnalyzerResult & { details: Record<string, a
     score += 5;
   } else if (ogTitle || ogDesc) {
     score += 2;
-    if (!ogImage) recommendations.push("Legg til og:image for deling på sosiale medier");
+    if (!ogImage) recommendations.push("Add og:image for social media sharing");
   } else {
-    recommendations.push("Legg til OpenGraph-tags (og:title, og:description, og:image)");
+    recommendations.push("Add OpenGraph tags (og:title, og:description, og:image)");
   }
 
   // Canonical (0-3)
   if (canonical) score += 3;
-  else recommendations.push("Legg til canonical URL for å unngå duplisert innhold");
+  else recommendations.push("Add canonical URL to avoid duplicate content");
 
   // Viewport (0-2)
   if (viewport) score += 2;
-  else issues.push("Mangler viewport meta — siden er ikke mobiloptimalisert");
+  else issues.push("Missing viewport meta — site is not mobile-optimized");
 
   return {
     score: Math.min(20, score), max: 20,
@@ -235,46 +235,46 @@ function analyzeContent(html: string): AnalyzerResult & { details: Record<string
 
   // H1 (0-5)
   if (h1Count === 0) {
-    issues.push("Mangler H1-overskrift");
-    recommendations.push("Legg til én tydelig H1 med tjeneste + lokasjon (f.eks. 'Tannlege i Stavanger')");
+    issues.push("Missing H1 heading");
+    recommendations.push("Add one clear H1 with service + location (e.g. 'Dentist in Stavanger')");
   } else if (h1Count === 1) {
     score += 5;
   } else {
     score += 3;
-    recommendations.push(`${h1Count} H1-overskrifter funnet — beholdt bare én for best effekt`);
+    recommendations.push(`${h1Count} H1 headings found — keep only one for best effect`);
   }
 
   // H2 structure (0-3)
   if (h2Count >= 3) score += 3;
   else if (h2Count > 0) score += 1;
-  else recommendations.push("Legg til H2-overskrifter for tjenester, om oss, kontakt");
+  else recommendations.push("Add H2 headings for services, about us, contact");
 
   // Word count (0-4)
   if (words >= 500) score += 4;
   else if (words >= 200) score += 2;
   else {
-    issues.push(`Lite innhold (${words} ord) — AI-er trenger nok tekst for å forstå bedriften`);
-    recommendations.push("Legg til mer innhold (minst 300-500 ord) som beskriver tjenester og kompetanse");
+    issues.push(`Low content (${words} words) — AIs need enough text to understand your business`);
+    recommendations.push("Add more content (at least 300-500 words) describing services and expertise");
   }
 
   // Location signals (0-3)
   if (hasLocation) score += 3;
   else {
-    issues.push("Ingen stedsnavn funnet i innhold");
-    recommendations.push("Nevn by/bydel eksplisitt i tekst og overskrifter ('tannlege i Stavanger')");
+    issues.push("No location names found in content");
+    recommendations.push("Mention city/district explicitly in text and headings (e.g. 'dentist in Stavanger')");
   }
 
   // Prices (0-2)
   if (hasPrices) score += 2;
-  else recommendations.push("Legg til prisinformasjon — AI-er inkluderer dette i svar");
+  else recommendations.push("Add pricing information — AIs include this in responses");
 
   // FAQ (0-3)
   if (hasFaq) score += 3;
-  else recommendations.push("Legg til FAQ-seksjon — AI-assistenter siterer direkte fra FAQ");
+  else recommendations.push("Add a FAQ section — AI assistants cite directly from FAQs");
 
   // Phone (0-2)
   if (hasPhone) score += 2;
-  else recommendations.push("Legg til telefonnummer i et format AI kan lese (ikke bare bilde)");
+  else recommendations.push("Add phone number in a format AI can read (not just an image)");
 
   return {
     score: Math.min(22, score), max: 22,
@@ -307,35 +307,35 @@ function analyzeTechnical(html: string, robotsTxt: string | null, llmsTxt: strin
       score += 5;
     } else {
       if (blocksGpt) {
-        issues.push("robots.txt blokkerer GPTBot (ChatGPT)");
-        recommendations.push("Fjern GPTBot-blokkeringen fra robots.txt for å tillate ChatGPT-indeksering");
+        issues.push("robots.txt blocks GPTBot (ChatGPT)");
+        recommendations.push("Remove GPTBot block from robots.txt to allow ChatGPT indexing");
       }
       if (blocksClaude) {
-        issues.push("robots.txt blokkerer ClaudeBot (Anthropic)");
-        recommendations.push("Fjern ClaudeBot-blokkeringen for å tillate Claude-indeksering");
+        issues.push("robots.txt blocks ClaudeBot (Anthropic)");
+        recommendations.push("Remove ClaudeBot block to allow Claude indexing");
       }
       score += 1;
     }
   } else {
     score += 2;
-    recommendations.push("Legg til robots.txt som eksplisitt tillater AI-roboter");
+    recommendations.push("Add robots.txt that explicitly allows AI bots");
   }
 
   // llms.txt (0-5)
   if (hasLlmsTxt) {
     score += 5;
   } else {
-    recommendations.push("Legg til /llms.txt — et nytt format spesifikt for AI-lesbarhet");
+    recommendations.push("Add /llms.txt — a new format specifically for AI readability");
   }
 
   // Sitemap (0-2)
   if (hasSitemap) score += 2;
-  else recommendations.push("Legg til sitemap.xml og referer til den fra robots.txt");
+  else recommendations.push("Add sitemap.xml and reference it from robots.txt");
 
   // Page speed (0-3)
   if (fast) score += 3;
   else {
-    recommendations.push(`Siden lastet på ${loadMs}ms — raskere sider prioriteres i søk`);
+    recommendations.push(`Page loaded in ${loadMs}ms — faster pages are prioritized in search`);
     score += 1;
   }
 
@@ -369,17 +369,17 @@ function analyzeAISignals(html: string, llmsTxt: string | null): AnalyzerResult 
   if (hasLlmsTxt) {
     score += 4;
   } else {
-    recommendations.push("Opprett /llms.txt med beskrivelse av bedriften, tjenester og AI-instrukser");
+    recommendations.push("Create /llms.txt with a description of your business, services, and AI instructions");
   }
 
   // FAQ/HowTo schema (0-3)
   if (hasFaqSchema) score += 3;
-  else recommendations.push("FAQPage schema mangler — høy prioritet for AI-sitèring");
+  else recommendations.push("FAQPage schema missing — high priority for AI citation");
 
   // E-E-A-T signals (0-5)
   score += Math.min(5, hasEEAT * 2);
-  if (!hasAuthor) recommendations.push("Legg til forfatter/ekspert-informasjon (E-E-A-T signal)");
-  if (!hasDate) recommendations.push("Legg til publiseringsdato på innhold");
+  if (!hasAuthor) recommendations.push("Add author/expert information (E-E-A-T signal)");
+  if (!hasDate) recommendations.push("Add publication date to content");
 
   // Structured Q&A (0-1)
   if (hasHowTo) score += 1;
@@ -583,7 +583,7 @@ function renderHeader(): string {
   return `<header>
   <div class="container inner">
     <a class="logo" href="https://synligdigital.no">Synlig<span>Digital</span></a>
-    <nav><a href="https://synligdigital.no/blogg/aeo-i-norge-2026">Hva er AEO? →</a></nav>
+    <nav><a href="https://synligdigital.no/blogg/aeo-i-norge-2026">What is AEO? →</a></nav>
   </div>
 </header>`;
 }
@@ -591,8 +591,8 @@ function renderHeader(): string {
 function renderFooter(): string {
   return `<footer>
   <div class="container">
-    <p>AEO Sjekk er en gratis tjeneste fra <a href="https://synligdigital.no">Synlig Digital</a> — AI-synlighet for norske bedrifter.<br>
-    Resultatene er veiledende og basert på offentlig tilgjengelig informasjon.</p>
+    <p>AEO Check is a free service from <a href="https://synligdigital.no">Synlig Digital</a> — AI visibility for businesses.<br>
+    Results are indicative and based on publicly available information.</p>
   </div>
 </footer>`;
 }
@@ -605,84 +605,84 @@ function getBarClass(pct: number): string {
 }
 
 const HOME_HTML = `<!DOCTYPE html>
-<html lang="no">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AEO Sjekk — Gratis AI-synlighetsanalyse | Synlig Digital</title>
-  <meta name="description" content="Sjekk om bedriften din er synlig for ChatGPT, Claude og Google AI. Gratis AEO-score på under 15 sekunder.">
-  <meta property="og:title" content="AEO Sjekk — Gratis AI-synlighetsanalyse">
-  <meta property="og:description" content="Sjekk om bedriften din er synlig for ChatGPT, Claude og Google AI. Gratis AEO-score på under 15 sekunder.">
+  <title>AEO Check — Free AI Visibility Analysis | Synlig Digital</title>
+  <meta name="description" content="Check if your business is visible to ChatGPT, Claude, and Google AI. Free AEO score in under 15 seconds.">
+  <meta property="og:title" content="AEO Check — Free AI Visibility Analysis">
+  <meta property="og:description" content="Check if your business is visible to ChatGPT, Claude, and Google AI. Free AEO score in under 15 seconds.">
   <style>${CSS}</style>
 </head>
 <body>
   <div class="overlay" id="overlay">
     <div class="spinner"></div>
-    <p id="overlay-msg">Analyserer nettsiden din…</p>
-    <p style="font-size:0.8rem;color:#9ca3af">Kan ta 10–20 sekunder</p>
+    <p id="overlay-msg">Analyzing your website…</p>
+    <p style="font-size:0.8rem;color:#9ca3af">May take 10–20 seconds</p>
   </div>
   ${renderHeader()}
   <div class="hero">
     <div class="container">
-      <h1>Er bedriften din synlig for AI?</h1>
-      <p>ChatGPT, Claude og Google AI svarer på kundespørsmål — uten å sende dem til Google. Sjekk om din bedrift dukker opp.</p>
-      <form action="/sjekk" method="GET" id="main-form">
+      <h1>Is your business visible to AI?</h1>
+      <p>ChatGPT, Claude, and Google AI answer customer questions — without sending them to Google. Check if your business shows up.</p>
+      <form action="/check" method="GET" id="main-form">
         <div class="form-row">
-          <input type="url" name="url" id="main-url" placeholder="https://dinbedrift.no" required autocomplete="url">
-          <button class="btn" type="submit">Sjekk gratis</button>
+          <input type="url" name="url" id="main-url" placeholder="https://yourbusiness.com" required autocomplete="url">
+          <button class="btn" type="submit">Check for free</button>
         </div>
       </form>
     </div>
   </div>
   <div class="container" style="padding-top:2rem">
     <div class="card">
-      <div class="section-title">Hva sjekker vi?</div>
+      <div class="section-title">What do we check?</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">
         <div>
-          <strong>📋 Strukturerte data (25p)</strong><br>
+          <strong>📋 Structured Data (25p)</strong><br>
           <small style="color:#6b7280">JSON-LD schema, LocalBusiness, FAQ, AggregateRating</small>
         </div>
         <div>
-          <strong>🏷️ Meta og titler (20p)</strong><br>
+          <strong>🏷️ Meta & Titles (20p)</strong><br>
           <small style="color:#6b7280">Title, description, OpenGraph, canonical</small>
         </div>
         <div>
-          <strong>📝 Innhold (22p)</strong><br>
-          <small style="color:#6b7280">H1/H2-struktur, lokasjon, pris, FAQ, tekstmengde</small>
+          <strong>📝 Content (22p)</strong><br>
+          <small style="color:#6b7280">H1/H2 structure, location, pricing, FAQ, word count</small>
         </div>
         <div>
-          <strong>⚙️ Teknisk (20p)</strong><br>
-          <small style="color:#6b7280">HTTPS, robots.txt, llms.txt, hastighet</small>
+          <strong>⚙️ Technical (20p)</strong><br>
+          <small style="color:#6b7280">HTTPS, robots.txt, llms.txt, speed</small>
         </div>
         <div style="grid-column:1/-1">
-          <strong>🤖 AI-signaler (13p)</strong><br>
+          <strong>🤖 AI Signals (13p)</strong><br>
           <small style="color:#6b7280">llms.txt, FAQPage schema, E-E-A-T, HowTo</small>
         </div>
       </div>
     </div>
     <div class="card" style="text-align:center">
-      <p style="color:#6b7280;margin-bottom:1rem">Over <strong>80%</strong> av norske bedrifter scorer under 40/100. Vet du hvor du står?</p>
-      <form action="/sjekk" method="GET" class="loading-form">
+      <p style="color:#6b7280;margin-bottom:1rem">Over <strong>80%</strong> of businesses score below 40/100. Do you know where you stand?</p>
+      <form action="/check" method="GET" class="loading-form">
         <div class="form-row" style="justify-content:center">
-          <input type="url" name="url" placeholder="https://dinbedrift.no" required style="max-width:320px">
-          <button class="btn" type="submit">Start gratis analyse</button>
+          <input type="url" name="url" placeholder="https://yourbusiness.com" required style="max-width:320px">
+          <button class="btn" type="submit">Start free analysis</button>
         </div>
       </form>
     </div>
     <div class="card" style="border-left:4px solid #10b981">
-      <div class="section-title" style="margin-bottom:0.5rem">📊 Resultater fra norske bedrifter</div>
+      <div class="section-title" style="margin-bottom:0.5rem">📊 Results from businesses</div>
       <div class="proof-card">
-        <strong>Nordic Lithium AS</strong> — Gikk fra 67/100 til 85/100 etter AEO-optimalisering.<br>
-        <span style="color:#6b7280;font-size:0.85rem">«Vi dukker nå opp i AI-svar om norsk litium og bærekraftig gruvedrift.»</span>
+        <strong>Nordic Lithium AS</strong> — Went from 67/100 to 85/100 after AEO optimization.<br>
+        <span style="color:#6b7280;font-size:0.85rem">"We now appear in AI responses about lithium and sustainable mining."</span>
       </div>
-      <p style="margin-top:0.75rem;font-size:0.85rem;color:#6b7280">Synlig Digital (synligdigital.no) scorer <strong>96/100</strong> — vi lever som vi lærer.</p>
+      <p style="margin-top:0.75rem;font-size:0.85rem;color:#6b7280">Synlig Digital (synligdigital.no) scores <strong>96/100</strong> — we practice what we preach.</p>
     </div>
   </div>
   ${renderFooter()}
   <script>
     function showOverlay(url) {
       const host = new URL(url).hostname;
-      document.getElementById('overlay-msg').textContent = 'Analyserer ' + host + '…';
+      document.getElementById('overlay-msg').textContent = 'Analyzing ' + host + '…';
       document.getElementById('overlay').classList.add('active');
     }
     document.getElementById('main-form').addEventListener('submit', function(e) {
@@ -701,11 +701,11 @@ const HOME_HTML = `<!DOCTYPE html>
 
 function renderResultHtml(r: Awaited<ReturnType<typeof runAudit>>): string {
   const categories = [
-    { name: "📋 Strukturerte data", score: r.schema.score, max: r.schema.max },
-    { name: "🏷️ Meta og titler", score: r.meta.score, max: r.meta.max },
-    { name: "📝 Innhold", score: r.content.score, max: r.content.max },
-    { name: "⚙️ Teknisk", score: r.technical.score, max: r.technical.max },
-    { name: "🤖 AI-signaler", score: r.aiSignals.score, max: r.aiSignals.max },
+    { name: "📋 Structured Data", score: r.schema.score, max: r.schema.max },
+    { name: "🏷️ Meta & Titles", score: r.meta.score, max: r.meta.max },
+    { name: "📝 Content", score: r.content.score, max: r.content.max },
+    { name: "⚙️ Technical", score: r.technical.score, max: r.technical.max },
+    { name: "🤖 AI Signals", score: r.aiSignals.score, max: r.aiSignals.max },
   ];
 
   const gradeColor = {
@@ -726,31 +726,31 @@ function renderResultHtml(r: Awaited<ReturnType<typeof runAudit>>): string {
 
   const issuesHtml = r.allIssues.length > 0
     ? `<ul class="issues-list">${r.allIssues.map(i => `<li>${i}</li>`).join("")}</ul>`
-    : `<p style="color:#057a55">Ingen kritiske problemer funnet! 🎉</p>`;
+    : `<p style="color:#057a55">No critical issues found! 🎉</p>`;
 
   const topRecs = r.allRecs.slice(0, 8);
   const recsHtml = topRecs.length > 0
     ? `<ul class="recs-list">${topRecs.map(r => `<li>${r}</li>`).join("")}</ul>`
-    : `<p style="color:#057a55">Nettsiden er godt optimalisert!</p>`;
+    : `<p style="color:#057a55">Website is well optimized!</p>`;
 
   const displayUrl = r.url.replace(/^https?:\/\//, "").replace(/\/$/, "");
-  const now = new Date().toLocaleDateString("nb-NO", { day: "numeric", month: "long", year: "numeric" });
+  const now = new Date().toLocaleDateString("en-US", { day: "numeric", month: "long", year: "numeric" });
 
   return `<!DOCTYPE html>
-<html lang="no">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AEO-score for ${displayUrl}: ${r.totalScore}/100 (${r.grade}) | Synlig Digital</title>
-  <meta name="description" content="AEO-analyse av ${displayUrl}. AI-synlighetsscore: ${r.totalScore}/100 (karakter ${r.grade}).">
+  <title>AEO score for ${displayUrl}: ${r.totalScore}/100 (${r.grade}) | Synlig Digital</title>
+  <meta name="description" content="AEO analysis of ${displayUrl}. AI visibility score: ${r.totalScore}/100 (grade ${r.grade}).">
   <style>${CSS}</style>
 </head>
 <body>
   ${renderHeader()}
   <div style="background:white;border-bottom:1px solid #e5e7eb;padding:0.75rem 0;">
     <div class="container" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.5rem">
-      <span style="font-size:0.9rem;color:#6b7280">Analysert: <strong>${displayUrl}</strong> · ${now}</span>
-      <a href="/" class="btn btn-secondary" style="font-size:0.85rem;padding:0.5rem 1rem">Sjekk en annen side →</a>
+      <span style="font-size:0.9rem;color:#6b7280">Analyzed: <strong>${displayUrl}</strong> · ${now}</span>
+      <a href="/" class="btn btn-secondary" style="font-size:0.85rem;padding:0.5rem 1rem">Check another page →</a>
     </div>
   </div>
   <div class="container" style="padding-top:1.5rem">
@@ -758,19 +758,19 @@ function renderResultHtml(r: Awaited<ReturnType<typeof runAudit>>): string {
       <div class="score-row">
         <div class="grade-badge grade-${r.grade}" style="background:${gradeColor}">${r.grade}</div>
         <div class="score-text">
-          <h2>${r.totalScore}/100 — AI-synlighetsscore</h2>
+          <h2>${r.totalScore}/100 — AI Visibility Score</h2>
           <div class="sub">${
-            r.totalScore >= 70 ? "Godt optimalisert for AI-søk" :
-            r.totalScore >= 55 ? "Middels synlighet — betydelig forbedringspotensial" :
-            r.totalScore >= 40 ? "Lav synlighet — mange viktige elementer mangler" :
-            "Svært lav synlighet — bedriften er nesten usynlig for AI"
+            r.totalScore >= 70 ? "Well optimized for AI search" :
+            r.totalScore >= 55 ? "Medium visibility — significant room for improvement" :
+            r.totalScore >= 40 ? "Low visibility — many important elements are missing" :
+            "Very low visibility — your business is nearly invisible to AI"
           }</div>
           <div class="badge-row">
-            ${r.schema.details.hasFaqPage ? '<span class="badge badge-green">✓ FAQPage</span>' : '<span class="badge badge-red">✗ Ingen FAQ-schema</span>'}
-            ${r.schema.details.hasLocalBusiness ? '<span class="badge badge-green">✓ LocalBusiness</span>' : '<span class="badge badge-red">✗ Ingen LocalBusiness</span>'}
-            ${r.schema.details.hasAggregateRating ? '<span class="badge badge-green">✓ AggregateRating</span>' : '<span class="badge badge-red">✗ Ingen rating-schema</span>'}
-            ${r.technical.details.hasLlmsTxt ? '<span class="badge badge-green">✓ llms.txt</span>' : '<span class="badge badge-red">✗ Ingen llms.txt</span>'}
-            ${r.technical.details.blocksGpt ? '<span class="badge badge-red">⚠ Blokkerer GPTBot</span>' : ''}
+            ${r.schema.details.hasFaqPage ? '<span class="badge badge-green">✓ FAQPage</span>' : '<span class="badge badge-red">✗ No FAQ schema</span>'}
+            ${r.schema.details.hasLocalBusiness ? '<span class="badge badge-green">✓ LocalBusiness</span>' : '<span class="badge badge-red">✗ No LocalBusiness</span>'}
+            ${r.schema.details.hasAggregateRating ? '<span class="badge badge-green">✓ AggregateRating</span>' : '<span class="badge badge-red">✗ No rating schema</span>'}
+            ${r.technical.details.hasLlmsTxt ? '<span class="badge badge-green">✓ llms.txt</span>' : '<span class="badge badge-red">✗ No llms.txt</span>'}
+            ${r.technical.details.blocksGpt ? '<span class="badge badge-red">⚠ Blocks GPTBot</span>' : ''}
           </div>
         </div>
       </div>
@@ -780,61 +780,61 @@ function renderResultHtml(r: Awaited<ReturnType<typeof runAudit>>): string {
     </div>
 
     ${r.allIssues.length > 0 ? `<div class="card">
-      <div class="section-title">⚠️ Kritiske problemer (${r.allIssues.length})</div>
+      <div class="section-title">⚠️ Critical Issues (${r.allIssues.length})</div>
       ${issuesHtml}
     </div>` : ""}
 
     <div class="card">
-      <div class="section-title">💡 Topp anbefalinger</div>
+      <div class="section-title">💡 Top Recommendations</div>
       ${recsHtml}
     </div>
 
     <div class="card" style="padding:1rem 1.25rem">
-      <div class="section-title" style="margin-bottom:0.5rem">📊 Sammenligning med norske bedrifter</div>
+      <div class="section-title" style="margin-bottom:0.5rem">📊 Comparison with businesses</div>
       <div class="benchmark">
         <span style="min-width:60px;font-weight:600;color:${r.totalScore >= 70 ? '#057a55' : r.totalScore >= 40 ? '#d97706' : '#dc2626'}">${r.totalScore}/100</span>
         <div class="benchmark-bar-wrap">
           <div style="position:absolute;top:0;left:0;height:100%;width:${r.totalScore}%;background:${r.totalScore >= 70 ? '#10b981' : r.totalScore >= 40 ? '#f59e0b' : '#ef4444'};border-radius:3px;"></div>
-          <div class="benchmark-avg" style="left:48%;" title="Norsk gjennomsnitt: ~48/100"></div>
+          <div class="benchmark-avg" style="left:48%;" title="Average: ~48/100"></div>
           <div class="benchmark-you" style="left:${Math.min(r.totalScore, 97)}%;"></div>
         </div>
-        <span style="color:#6b7280;font-size:0.8rem;min-width:90px;text-align:right">Snitt: 48/100</span>
+        <span style="color:#6b7280;font-size:0.8rem;min-width:90px;text-align:right">Avg: 48/100</span>
       </div>
       <p style="font-size:0.8rem;color:#9ca3af;margin-top:0.5rem">${
-        r.totalScore >= 70 ? '🏆 Du er blant topp 10% av norske bedrifter på AI-synlighet.' :
-        r.totalScore >= 40 ? '📈 Du er over snittet, men konkurrentene tar igjen. Neste steg: FAQ-schema og AggregateRating.' :
-        '⚠️ Under snittet for norske bedrifter. AI-søk sender kundene dine til konkurrenter som scorer høyere.'
+        r.totalScore >= 70 ? '🏆 You are among the top 10% of businesses for AI visibility.' :
+        r.totalScore >= 40 ? '📈 You are above average, but competitors are catching up. Next step: FAQ schema and AggregateRating.' :
+        '⚠️ Below average for businesses. AI search is sending your customers to competitors who score higher.'
       }</p>
     </div>
 
     <div class="cta-box">
       <h3>${
-        r.totalScore < 40 ? '⚡ Din bedrift er nesten usynlig for AI-søk' :
-        r.totalScore < 70 ? '📈 Du mister kunder til konkurrenter i AI-søk' :
-        '✅ Bra score — men det er alltid rom til toppen'
+        r.totalScore < 40 ? '⚡ Your business is nearly invisible to AI search' :
+        r.totalScore < 70 ? '📈 You are losing customers to competitors in AI search' :
+        '✅ Great score — but there is always room for improvement'
       }</h3>
       <p>${
         r.totalScore < 40
-          ? `Du scorer ${r.totalScore}/100. Norsk gjennomsnitt er 48/100 — men topp-bedrifter scorer 80+. ChatGPT og Claude anbefaler konkurrentene dine, ikke deg. Vi fikser dette.`
+          ? `You score ${r.totalScore}/100. The average is 48/100 — but top businesses score 80+. ChatGPT and Claude recommend your competitors, not you. We can fix this.`
           : r.totalScore < 70
-          ? `Du scorer ${r.totalScore}/100 — bedre enn de fleste, men konkurrentene dine jobber aktivt med AEO. En full audit avslører de 3-5 endringene med størst effekt.`
-          : `Du scorer ${r.totalScore}/100 — imponerende! For å nå toppen og bli den bedriften AI siterer konsekvent, trenger du en full AEO-strategi.`
+          ? `You score ${r.totalScore}/100 — better than most, but your competitors are actively working on AEO. A full audit reveals the 3-5 changes with the greatest impact.`
+          : `You score ${r.totalScore}/100 — impressive! To reach the top and become the business AI consistently cites, you need a full AEO strategy.`
       }</p>
-      <a href="https://synligdigital.no?ref=sjekk-${r.totalScore}" class="btn" style="background:#f59e0b;color:#111">Få gratis AEO-gjennomgang →</a>
+      <a href="https://synligdigital.no?ref=check-${r.totalScore}" class="btn" style="background:#f59e0b;color:#111">Get a free AEO review →</a>
       <div class="cta-contact">
-        <span>eller kontakt oss direkte:</span>
+        <span>or contact us directly:</span>
         <a href="mailto:hei@synligdigital.no">hei@synligdigital.no</a>
         <span>·</span>
-        <a href="https://synligdigital.no/blogg/aeo-i-norge-2026">Les: AEO i Norge 2026 →</a>
+        <a href="https://synligdigital.no/blogg/aeo-i-norge-2026">Read: AEO in 2026 →</a>
       </div>
     </div>
 
     <div class="card">
-      <div class="section-title">🔄 Sjekk en annen nettside</div>
-      <form action="/sjekk" method="GET" class="loading-form">
+      <div class="section-title">🔄 Check another website</div>
+      <form action="/check" method="GET" class="loading-form">
         <div class="form-row">
-          <input type="url" name="url" placeholder="https://annenbedrift.no" required>
-          <button class="btn" type="submit">Sjekk</button>
+          <input type="url" name="url" placeholder="https://anotherbusiness.com" required>
+          <button class="btn" type="submit">Check</button>
         </div>
       </form>
     </div>
@@ -854,11 +854,11 @@ function renderResultHtml(r: Awaited<ReturnType<typeof runAudit>>): string {
 
 function renderErrorHtml(url: string, error: string): string {
   return `<!DOCTYPE html>
-<html lang="no">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Feil — AEO Sjekk | Synlig Digital</title>
+  <title>Error — AEO Check | Synlig Digital</title>
   <style>${CSS}</style>
 </head>
 <body>
@@ -866,9 +866,9 @@ function renderErrorHtml(url: string, error: string): string {
   <div class="container" style="padding-top:2rem">
     <div class="card" style="text-align:center">
       <div style="font-size:3rem;margin-bottom:1rem">😕</div>
-      <h2 style="margin-bottom:0.5rem">Kunne ikke analysere nettsiden</h2>
+      <h2 style="margin-bottom:0.5rem">Could not analyze the website</h2>
       <p style="color:#6b7280;margin-bottom:1.5rem">${error}</p>
-      <a href="/" class="btn">Prøv igjen</a>
+      <a href="/" class="btn">Try again</a>
     </div>
   </div>
   ${renderFooter()}
@@ -878,12 +878,12 @@ function renderErrorHtml(url: string, error: string): string {
 
 function renderLoadingHtml(url: string): string {
   return `<!DOCTYPE html>
-<html lang="no">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="refresh" content="0;url=/sjekk?url=${encodeURIComponent(url)}">
-  <title>Analyserer... | AEO Sjekk</title>
+  <meta http-equiv="refresh" content="0;url=/check?url=${encodeURIComponent(url)}">
+  <title>Analyzing... | AEO Check</title>
   <style>${CSS}
   .spinner { display: inline-block; width: 40px; height: 40px; border: 4px solid #e5e7eb; border-top-color: var(--primary); border-radius: 50%; animation: spin 0.8s linear infinite; }
   @keyframes spin { to { transform: rotate(360deg); } }
@@ -893,8 +893,8 @@ function renderLoadingHtml(url: string): string {
   ${renderHeader()}
   <div class="container" style="padding-top:3rem;text-align:center">
     <div class="spinner" style="margin-bottom:1.5rem"></div>
-    <h2>Analyserer ${url.replace(/^https?:\/\//, "")}...</h2>
-    <p style="color:#6b7280;margin-top:0.5rem">Henter nettside, sjekker schema, robots.txt og AI-signaler — tar 5-15 sekunder.</p>
+    <h2>Analyzing ${url.replace(/^https?:\/\//, "")}...</h2>
+    <p style="color:#6b7280;margin-top:0.5rem">Fetching website, checking schema, robots.txt and AI signals — takes 5-15 seconds.</p>
   </div>
 </body>
 </html>`;
@@ -921,7 +921,7 @@ export default {
     }
 
     // Audit endpoint
-    if (pathname === "/sjekk") {
+    if (pathname === "/check") {
       // Handle POST (form submit) → redirect to GET
       if (request.method === "POST") {
         const body = await request.formData();
@@ -930,7 +930,7 @@ export default {
           return Response.redirect(new URL("/", request.url).href, 303);
         }
         return Response.redirect(
-          new URL(`/sjekk?url=${encodeURIComponent(targetUrl)}`, request.url).href,
+          new URL(`/check?url=${encodeURIComponent(targetUrl)}`, request.url).href,
           303
         );
       }
@@ -946,7 +946,7 @@ export default {
         parsedUrl = new URL(targetUrl.startsWith("http") ? targetUrl : "https://" + targetUrl);
       } catch {
         return new Response(
-          renderErrorHtml(targetUrl, `"${targetUrl}" er ikke en gyldig URL.`),
+          renderErrorHtml(targetUrl, `"${targetUrl}" is not a valid URL.`),
           { status: 400, headers: { "Content-Type": "text/html; charset=utf-8", ...securityHeaders } }
         );
       }
@@ -955,7 +955,7 @@ export default {
       const hostname = parsedUrl.hostname;
       if (hostname === "localhost" || hostname === "127.0.0.1" || hostname.startsWith("192.168.") || hostname.startsWith("10.")) {
         return new Response(
-          renderErrorHtml(targetUrl, "Kan ikke analysere lokale adresser."),
+          renderErrorHtml(targetUrl, "Cannot analyze local addresses."),
           { status: 400, headers: { "Content-Type": "text/html; charset=utf-8", ...securityHeaders } }
         );
       }
@@ -965,7 +965,7 @@ export default {
 
         if (result.statusCode === 0) {
           return new Response(
-            renderErrorHtml(targetUrl, `Kunne ikke nå ${hostname}. Sjekk at domenet er korrekt og at nettsiden er oppe.`),
+            renderErrorHtml(targetUrl, `Could not reach ${hostname}. Check that the domain is correct and the website is up.`),
             { status: 200, headers: { "Content-Type": "text/html; charset=utf-8", ...securityHeaders } }
           );
         }
@@ -975,7 +975,7 @@ export default {
         });
       } catch (e: any) {
         return new Response(
-          renderErrorHtml(targetUrl, `Analysen feilet: ${e.message || "ukjent feil"}`),
+          renderErrorHtml(targetUrl, `Analysis failed: ${e.message || "unknown error"}`),
           { status: 500, headers: { "Content-Type": "text/html; charset=utf-8", ...securityHeaders } }
         );
       }
